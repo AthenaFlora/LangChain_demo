@@ -172,3 +172,9 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Ignore env file that contains OPENAI_API_KEY
+.env
+
+# Ignore output directory
+output/
