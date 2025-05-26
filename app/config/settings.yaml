@@ -15,9 +15,12 @@ output:
   directory: "app/data/output"
 
 embeddings:
-  model: "all-MiniLM-L6-v2"
+  service_type: "openai"  # Options: "local" or "openai"
+  models:
+    local: "all-MiniLM-L6-v2"
+    openai: "text-embedding-ada-002"
   cache_dir: "app/models/embeddings"
 
 paths:
   profiles: "app/data/profiles"
-  jobs: "app/data/jobs" 
+  jobs: "app/data/jobs"

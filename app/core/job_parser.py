@@ -3,9 +3,8 @@ from bs4 import BeautifulSoup
 from pathlib import Path
 import yaml
 import logging
-from sentence_transformers import SentenceTransformer
+from infras.embedding.embedding import EmbeddingFactory
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class JobParser:
@@ -13,7 +12,13 @@ class JobParser:
         with open(config_path, 'r') as f:
             self.config = yaml.safe_load(f)
         
-        self.embedder = SentenceTransformer(self.config['embeddings']['model'])
+        # Initialize embedding service based on config
+        service_type = self.config['embeddings'].get('service_type', 'local')
+        model_name = self.config['embeddings']['models'].get(service_type)
+        self.embedder = EmbeddingFactory.create_embedding_service(
+            service_type=service_type,
+            model_name=model_name
+        )
         self.jobs_dir = Path(self.config['paths']['jobs'])
 
     def parse_job_description(self, text: str) -> dict:
@@ -32,30 +37,10 @@ class JobParser:
             logger.error(f"Error parsing job description: {str(e)}")
             raise
 
-    def scrape_linkedin_job(self, url: str) -> dict:
-        """Scrape job description from LinkedIn URL."""
-        try:
-            response = requests.get(url)
-            response.raise_for_status()
-            
-            soup = BeautifulSoup(response.text, 'html.parser')
-            # Note: This is a basic implementation and might need adjustment
-            # based on LinkedIn's actual structure
-            job_description = soup.find('div', {'class': 'description'})
-            
-            if job_description:
-                return self.parse_job_description(job_description.text)
-            else:
-                raise ValueError("Could not find job description in LinkedIn page")
-        
-        except Exception as e:
-            logger.error(f"Error scraping LinkedIn job: {str(e)}")
-            raise
-
     def get_embedding(self, text: str) -> list:
         """Generate embeddings for the text content."""
         try:
-            return self.embedder.encode(text).tolist()
+            return self.embedder.generate_embedding(text)
         except Exception as e:
             logger.error(f"Error generating embedding: {str(e)}")
             return []
@@ -69,4 +54,4 @@ class JobParser:
             logger.info(f"Successfully saved job data to {filename}")
         except Exception as e:
             logger.error(f"Error saving job data: {str(e)}")
-            raise 
+            raise

@@ -1,38 +1,24 @@
 {
     "name": "CV Generator Development",
     "build": {
-        "dockerfile": "Dockerfile",
+        "dockerfile": "../Dockerfile",
         "context": ".."
     },
     "customizations": {
         "vscode": {
             "extensions": [
                 "ms-python.python",
-                "ms-python.vscode-pylance",
-                "ms-python.black-formatter",
-                "ms-python.isort",
-                "njpwerner.autodocstring",
-                "streetsidesoftware.code-spell-checker"
+                "ms-python.vscode-pylance"
             ],
+            
             "settings": {
                 "python.defaultInterpreterPath": "/usr/local/bin/python",
                 "python.linting.enabled": true,
-                "python.linting.pylintEnabled": true,
-                "python.formatting.provider": "black",
-                "editor.formatOnSave": true,
-                "editor.codeActionsOnSave": {
-                    "source.organizeImports": true
-                }
+                "python.formatting.provider": "black"                
             }
         }
     },
-    "mounts": [
-        "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
-    ],
-    "remoteUser": "vscode",
-    "postCreateCommand": "pip install -r requirements.txt",
     "forwardPorts": [],
-    "remoteEnv": {
-        "PYTHONPATH": "/workspace"
-    }
-} 
+    "postCreateCommand": "pip install --no-cache-dir -r requirements.txt",
+    "remoteUser": "root"
+}

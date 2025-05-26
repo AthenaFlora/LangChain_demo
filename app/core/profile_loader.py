@@ -1,10 +1,9 @@
 from pathlib import Path
 import markdown
-from sentence_transformers import SentenceTransformer
 import yaml
 import logging
+from infras.embedding.embedding import EmbeddingFactory
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class ProfileLoader:
@@ -12,7 +11,13 @@ class ProfileLoader:
         with open(config_path, 'r') as f:
             self.config = yaml.safe_load(f)
         
-        self.embedder = SentenceTransformer(self.config['embeddings']['model'])
+        # Initialize embedding service based on config
+        service_type = self.config['embeddings'].get('service_type', 'openai')
+        model_name = self.config['embeddings']['models'].get(service_type)
+        self.embedder = EmbeddingFactory.create_embedding_service(
+            service_type=service_type,
+            model_name=model_name
+        )
         self.profiles_dir = Path(self.config['paths']['profiles'])
 
     def load_profile(self, filename: str) -> dict:
@@ -42,11 +47,11 @@ class ProfileLoader:
     def get_embedding(self, text: str) -> list:
         """Generate embeddings for the text content."""
         try:
-            return self.embedder.encode(text).tolist()
+            return self.embedder.generate_embedding(text)
         except Exception as e:
             logger.error(f"Error generating embedding: {str(e)}")
             return []
 
     def list_profiles(self) -> list:
         """List all available profile files."""
-        return [f.name for f in self.profiles_dir.glob("*.md")] 
+        return [f.name for f in self.profiles_dir.glob("*.md")]

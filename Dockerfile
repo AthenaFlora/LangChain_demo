@@ -1,26 +1,11 @@
-FROM python:3.9-slim
+FROM python:3.10-slim
 
 # Set working directory
-WORKDIR /app
+WORKDIR /workspace
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements first to leverage Docker cache
+# Install requirements.txt
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
-# Copy application code
 COPY . .
-
-# Create necessary directories
-RUN mkdir -p app/data/profiles app/data/jobs app/data/output app/models/embeddings
-
-# Set environment variables
-ENV PYTHONPATH=/app
-ENV PYTHONUNBUFFERED=1
-
-# Run the application
-CMD ["python", "app/main.py"] 
+CMD ["python", "main.py"]

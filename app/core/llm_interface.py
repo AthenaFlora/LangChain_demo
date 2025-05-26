@@ -1,18 +1,13 @@
 import logging
 import os
-from pathlib import Path
+from typing import cast
 
 import yaml
-from dotenv import load_dotenv
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import BaseMessage
 
-# Load environment variables from .env file
-load_dotenv()
-
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 
 class LLMInterface:
     def __init__(self, config_path: str = "app/config/settings.yaml"):
@@ -59,9 +54,10 @@ class LLMInterface:
                 tone_style=tone_style,
             )
 
-            response = self.llm.predict(formatted_prompt)
+            response = self.llm.invoke(formatted_prompt)
+            response_message = cast(BaseMessage, response)
             logger.info("Successfully generated CV")
-            return response
+            return str(response_message.content)
 
         except Exception as e:
             logger.error(f"Error generating CV: {str(e)}")
@@ -98,9 +94,10 @@ class LLMInterface:
                 tone_style=tone_style,
             )
 
-            response = self.llm.predict(formatted_prompt)
+            response = self.llm.invoke(formatted_prompt)
+            response_message = cast(BaseMessage, response)
             logger.info("Successfully generated cover letter")
-            return response
+            return str(response_message.content)
 
         except Exception as e:
             logger.error(f"Error generating cover letter: {str(e)}")
