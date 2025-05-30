@@ -39,7 +39,7 @@ class CvBuilder:
         replaced = self.cv_template.get_replaced_text()
         if replaced is None:
             raise Exception("CV is not created yet, call <create_cv_content> first")
-        cv_file = "app/data/output/" +Validate.sanitize_filename(f"cv_{self.job.company}_{self.job.title}_{self.context.today}.md").lower()
+        cv_file = "app/data/output/" + Validate.sanitize_filename(f"cv_{self.job.company}_{self.job.title}_{self.context.today}.md").lower()
         with open(cv_file, "w") as f:
             f.write(replaced)
         return cv_file

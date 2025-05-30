@@ -1,10 +1,9 @@
-from models.md_template import MdTemplate
+from models.template.md_template import MdTemplate
 from application.selector.education_selector import EducationSelector
 from application.selector.experience_selector import ExperienceSelector
 from application.selector.project_selector import ProjectSelector
 from application.selector.skill_selector import SkillSelector
 from application.selector.summary_selector import SummaryCreator
-
 
 class CVTemplate(MdTemplate):
     def __init__(self, template_md_path:str) -> None:

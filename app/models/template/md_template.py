@@ -4,7 +4,7 @@ from util.validate import Validate
 class MdTemplate(ABC):
     def __init__(self, template_path:str):
         Validate.validate_file(template_path)
-        Validate.validate_md_format(template_path)
+        Validate.validate_extension(template_path, ".md")
         with open(template_path, 'r') as f:
             self.template = f.read()
             self.replaced = None

@@ -4,7 +4,7 @@ from util.validate import Validate
 class Profile:
     def __init__(self, profile_path: str) -> None:
         Validate.validate_file(profile_path)
-        Validate.validate_json_format(profile_path)
+        Validate.validate_extension(profile_path, ".json")
         with open(profile_path) as f:
             self.profile_data = json.load(f)
         self.experience = self.set_data("experiences")

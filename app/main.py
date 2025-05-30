@@ -3,6 +3,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import asyncio
 
+from application.builder.cover_letter_builder import CoverLetterBuilder
 from application.builder.cv_builder import CvBuilder
 from application.selector.education_selector import EducationSelector
 from application.selector.experience_selector import ExperienceSelector
@@ -10,8 +11,8 @@ from application.selector.project_selector import ProjectSelector
 from application.selector.relevant_selector import RelevantSelector
 from application.selector.skill_selector import SkillSelector
 from application.selector.summary_selector import SummaryCreator
+from application.job.job_fetch import JobFetchFactory
 from models.profile import Profile
-from core.job_fetch import JobFetchFactory 
 from models.context import Context
 
 # Load environment variables
@@ -35,22 +36,30 @@ class Generator:
         """
         try:
             is_relevant = RelevantSelector().create_chain().invoke({"job_description":self.job.description})
-            
+    
             context = Context()
             if is_relevant:
                 await self._generate_cv(context)
+                self._generate_coverletter(context)
 
         except Exception as e:
             logger.error(f"Error generating documents: {str(e)}")
             raise
         
+    def _generate_coverletter(self, context):
+        coverletter_builder = CoverLetterBuilder(self.cv_text, self.job, context)
+        coverletter_builder.create_cover_letter()
+        output_cover_letter = coverletter_builder.export_pdf()
+        logger.info(f"Generated cover letter saved to {output_cover_letter}")
+
     async def _generate_cv(self, context):
         profile = Profile("app/data/profiles/my_profile.json")
         selectors = [SummaryCreator(), SkillSelector(profile), ExperienceSelector(profile), ProjectSelector(profile), EducationSelector(profile)]
         cv_builder = CvBuilder( job = self.job, selectors= selectors, context=context)
         await cv_builder.create_cv_content()
+        self.cv_text = cv_builder.get_cv_text()
         output_cv = cv_builder.export_cv_md()
-        logger.info(f"Generated documents saved to {output_cv}")
+        logger.info(f"Generated cv saved to {output_cv}")
 
 async def main():
     try:
