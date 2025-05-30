@@ -1,12 +1,18 @@
 import logging
-import os
 from pathlib import Path
-
-from core.job_parser import JobParser
-from core.llm_interface import LLMInterface
-from core.profile_loader import ProfileLoader
-from core.job_fetch import JobFetchFactory 
 from dotenv import load_dotenv
+import asyncio
+
+from application.builder.cv_builder import CvBuilder
+from application.selector.education_selector import EducationSelector
+from application.selector.experience_selector import ExperienceSelector
+from application.selector.project_selector import ProjectSelector
+from application.selector.relevant_selector import RelevantSelector
+from application.selector.skill_selector import SkillSelector
+from application.selector.summary_selector import SummaryCreator
+from models.profile import Profile
+from core.job_fetch import JobFetchFactory 
+from models.context import Context
 
 # Load environment variables
 load_dotenv()
@@ -15,90 +21,44 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-class CVGenerator:
-    def __init__(self):
-        self.profile_loader = ProfileLoader()
-        self.job_parser = JobParser()
-        self.llm_interface = LLMInterface()
+class Generator:
+    def __init__(self, job_source, job_source_type):
         self.job_fetch = JobFetchFactory.create_job_fetch_service("linkedln")
-        # Ensure output directory exists
         self.output_dir = Path("app/data/output")
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.job_fetch_service = JobFetchFactory.create_job_fetch_service("linkedln")
+        self.job = self.job_fetch_service.get_job(content=job_source, content_type=job_source_type)
 
-    def get_job_description(self, content: str, content_type : str) -> str:
-        return self.job_fetch.get_job_description(content=content, content_type= content_type)
-
-    def generate_documents(
-        self,
-        profile_file: str,
-        job_description: str,
-        tone: str = "professional",
-    ) -> tuple:
+    async def generate_documents(self):
         """
         Generate CV and cover letter based on profile and job description.
-
-        Args:
-            profile_file (str): Name of the profile markdown file
-            job_description (str): Job description text or LinkedIn URL
-            tone (str): Tone style for generation (original/precise/professional)
-            is_job_url (bool): Whether job_description is a LinkedIn URL
-
-        Returns:
-            tuple: (cv_path, cover_letter_path)
         """
         try:
-            # Load profile
-            profile_data = self.profile_loader.load_profile(profile_file)
-
-            # Parse job description
-            job_data = self.job_parser.parse_job_description(job_description)
-
-            # Generate documents
-            cv_content = self.llm_interface.generate_cv(profile_data, job_data, tone)
-            cover_letter_content = self.llm_interface.generate_cover_letter(
-                profile_data, job_data, tone
-            )
-
-            # Save documents
-            timestamp = Path(profile_file).stem
-            cv_path = self.output_dir / f"cv_{timestamp}.md"
-            print( f"cv path is : {cv_path}")
-            cover_letter_path = self.output_dir / f"cover_letter_{timestamp}.md"
-
-            cv_path.write_text(cv_content)
-            cover_letter_path.write_text(cover_letter_content)
-
-            logger.info(f"Generated documents saved to {self.output_dir}")
-            return str(cv_path), str(cover_letter_path)
+            is_relevant = RelevantSelector().create_chain().invoke({"job_description":self.job.description})
+            
+            context = Context()
+            if is_relevant:
+                await self._generate_cv(context)
 
         except Exception as e:
             logger.error(f"Error generating documents: {str(e)}")
             raise
-
-
-def main():
-    """Example usage of the CV Generator."""
-    try:
-        generator = CVGenerator()
-
-        # Example profile and job description
-        profile_file = "example_profile.md"
-        job_id = "4223465086"
         
-        cv_path, cover_letter_path = generator.generate_documents(
-            profile_file=profile_file,
-            job_description=generator.get_job_description(job_id, "id"),
-            tone="professional",
-        )
+    async def _generate_cv(self, context):
+        profile = Profile("app/data/profiles/my_profile.json")
+        selectors = [SummaryCreator(), SkillSelector(profile), ExperienceSelector(profile), ProjectSelector(profile), EducationSelector(profile)]
+        cv_builder = CvBuilder( job = self.job, selectors= selectors, context=context)
+        await cv_builder.create_cv_content()
+        output_cv = cv_builder.export_cv_md()
+        logger.info(f"Generated documents saved to {output_cv}")
 
-        print(f"Generated CV: {cv_path}")
-        print(f"Generated Cover Letter: {cover_letter_path}")
-
+async def main():
+    try:
+        generator = Generator(job_source='https://www.linkedin.com/jobs/collections/recommended/?currentJobId=3733041803', job_source_type='url')
+        await generator.generate_documents()
     except Exception as e:
         logger.error(f"Application error: {str(e)}")
         raise
 
-
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
