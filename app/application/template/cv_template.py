@@ -66,7 +66,7 @@ class CVTemplate(MdTemplate):
     def _create_skills_content(self, contents) -> str | None:
         if contents.__contains__(SkillSelector.__name__):
             if contents[SkillSelector.__name__]["skills"]:
-                skills= str(contents[SkillSelector.__name__]["skills"]).replace("[","").replace("]","")
+                skills= str(contents[SkillSelector.__name__]["skills"]).replace("[","").replace("]","").replace("'","`")
                 return skills
 
     def _overwrite_experiences(self, to_replace:str, contents:dict) -> str:
